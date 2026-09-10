@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>MyCalendary</title>
+<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiTXlDYWxlbmRhcnkiLCJzaG9ydF9uYW1lIjoiTXlDYWxlbmRhcnkiLCJkaXNwbGF5Ijoic3RhbmRhbG9uZSIsInN0YXJ0X3VybCI6Ii4iLCJiYWNrZ3JvdW5kX2NvbG9yIjoiI0ZGRjhGMCIsInRoZW1lX2NvbG9yIjoiIzZCNDQyMyJ9">
+<style>
+  :root{
+    --bg:#FFF8F0;
+    --card:#F0E2D6;
+    --card-soft:#F7ECE1;
+    --accent:#6B4423;
+    --accent-soft:#8B5E3C;
+    --text:#4A3527;
+    --text-light:#9C8570;
+    --border:#E3CFBB;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:'Georgia', 'Times New Roman', serif;
+    background:var(--bg);
+    color:var(--text);
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .shell{
+    max-width:1000px;
+    margin:0 auto;
+    padding:32px 24px 80px;
+  }
+  header{
+    margin-bottom:40px;
+  }
+  .greeting{
+    font-size:clamp(24px,4vw,38px);
+    font-weight:400;
+    color:var(--text);
+    line-height:1.3;
+  }
+  .greeting span{color:var(--accent-soft);}
+  .subgreeting{
+    font-family:Arial, sans-serif;
+    font-size:14px;
+    color:var(--text-light);
+    margin-top:8px;
+    letter-spacing:0.2px;
+  }
+  nav.actions{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:14px;
+    margin:32px 0 40px;
+  }
+  .action-btn{
+    background:var(--card-soft);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:20px 16px;
+    text-align:left;
+    cursor:pointer;
+    font-family:Arial, sans-serif;
+    transition:transform .15s ease, background .15s ease;
+  }
+  .action-btn:hover{background:var(--card); transform:translateY(-2px);}
+  .action-btn .icon{font-size:22px;display:block;margin-bottom:10px;}
+  .action-btn .label{font-size:14px;font-weight:600;color:var(--text);}
+
+  section{margin-bottom:36px;}
+  .section-title{
+    font-family:Arial, sans-serif;
+    font-size:15px;
+    font-weight:700;
+    color:var(--text);
+    margin-bottom:14px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+  .count{
+    font-size:12px;
+    font-weight:400;
+    color:var(--text-light);
+  }
+  .card-list{display:flex;flex-direction:column;gap:10px;}
+  .item{
+    background:var(--card-soft);
+    border-left:3px solid var(--accent);
+    border-radius:10px;
+    padding:14px 16px;
+    font-family:Arial, sans-serif;
+  }
+  .item.free{border-left-color:var(--accent-soft); background:var(--card);}
+  .item-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px;}
+  .item-meta{font-size:12px;color:var(--text-light);}
+  .empty{
+    font-family:Arial, sans-serif;
+    font-size:13px;
+    color:var(--text-light);
+    font-style:italic;
+    padding:16px;
+    background:var(--card-soft);
+    border-radius:10px;
+  }
+
+  .sync-btn{
+    background:var(--accent);
+    color:var(--bg);
+    border:none;
+    padding:13px 24px;
+    border-radius:10px;
+    font-family:Arial, sans-serif;
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+    margin-bottom:32px;
+  }
+  .sync-btn:active{opacity:0.85;}
+
+  .feedback-box{
+    background:var(--card-soft);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:24px;
+  }
+  .feedback-title{
+    font-size:16px;
+    color:var(--text);
+    margin-bottom:14px;
+    font-weight:400;
+  }
+  textarea{
+    width:100%;
+    min-height:90px;
+    background:var(--bg);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:12px 14px;
+    font-family:Arial, sans-serif;
+    font-size:14px;
+    color:var(--text);
+    resize:vertical;
+  }
+  textarea:focus{outline:2px solid var(--accent-soft); outline-offset:1px;}
+  .feedback-actions{
+    display:flex;
+    justify-content:flex-end;
+    margin-top:12px;
+  }
+  .send-btn{
+    background:var(--accent);
+    color:var(--bg);
+    border:none;
+    padding:10px 20px;
+    border-radius:8px;
+    font-family:Arial, sans-serif;
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .feedback-ok{
+    font-family:Arial, sans-serif;
+    font-size:12px;
+    color:var(--accent-soft);
+    margin-top:10px;
+    display:none;
+  }
+
+  @media (min-width:700px){
+    .shell{padding:48px 40px 100px;}
+    .two-col{display:grid; grid-template-columns:1fr 1fr; gap:32px; align-items:start;}
+  }
+  @media (min-width:1000px){
+    .shell{padding:60px 0 120px;}
+  }
+  .tutorial-overlay{
+    position:fixed; inset:0;
+    background:rgba(74,53,39,0.45);
+    display:none;
+    align-items:center; justify-content:center;
+    padding:20px;
+    z-index:100;
+  }
+  .tutorial-overlay.open{display:flex;}
+  .tutorial-modal{
+    background:var(--bg);
+    border-radius:18px;
+    max-width:480px;
+    width:100%;
+    max-height:85vh;
+    overflow-y:auto;
+    padding:28px;
+  }
+  .tutorial-modal h2{
+    font-size:22px;
+    font-weight:400;
+    color:var(--text);
+    margin-bottom:6px;
+  }
+  .tutorial-modal .step{
+    display:flex;
+    gap:14px;
+    margin-top:20px;
+    align-items:flex-start;
+  }
+  .tutorial-modal .step .num{
+    font-family:Arial, sans-serif;
+    font-size:13px;
+    font-weight:700;
+    color:var(--bg);
+    background:var(--accent);
+    width:26px; height:26px;
+    border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+  }
+  .tutorial-modal .step-text{font-family:Arial, sans-serif;}
+  .tutorial-modal .step-title{font-size:14px; font-weight:600; color:var(--text); margin-bottom:2px;}
+  .tutorial-modal .step-desc{font-size:13px; color:var(--text-light); line-height:1.5;}
+  .tutorial-close{
+    margin-top:24px;
+    width:100%;
+    background:var(--accent);
+    color:var(--bg);
+    border:none;
+    padding:12px;
+    border-radius:10px;
+    font-family:Arial, sans-serif;
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .tutorial-link{
+    background:none;
+    border:none;
+    font-family:Arial, sans-serif;
+    font-size:12px;
+    color:var(--accent-soft);
+    text-decoration:underline;
+    cursor:pointer;
+    margin-top:-24px;
+    margin-bottom:24px;
+    display:inline-block;
+  }
+  .calendar-tabs{
+    display:flex; gap:8px; margin-bottom:16px;
+  }
+  .calendar-tabs button{
+    font-family:Arial, sans-serif;
+    font-size:13px; font-weight:600;
+    padding:8px 16px;
+    border-radius:20px;
+    border:1px solid var(--border);
+    background:var(--card-soft);
+    color:var(--text-light);
+    cursor:pointer;
+  }
+  .calendar-tabs button.active{
+    background:var(--accent); color:var(--bg); border-color:var(--accent);
+  }
+  .week-grid{
+    display:grid;
+    grid-template-columns:repeat(7,1fr);
+    gap:6px;
+  }
+  .week-day{
+    background:var(--card-soft);
+    border-radius:10px;
+    padding:10px 8px;
+    min-height:110px;
+  }
+  .week-day.today{border:1.5px solid var(--accent);}
+  .week-day .dname{font-family:Arial, sans-serif; font-size:11px; color:var(--text-light); text-transform:capitalize;}
+  .week-day .dnum{font-family:Arial, sans-serif; font-size:15px; font-weight:700; color:var(--text); margin-bottom:6px;}
+  .week-event{
+    font-family:Arial, sans-serif;
+    font-size:10px;
+    background:var(--card);
+    color:var(--text);
+    border-left:2px solid var(--accent);
+    border-radius:4px;
+    padding:3px 5px;
+    margin-bottom:4px;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .month-grid{
+    display:grid;
+    grid-template-columns:repeat(7,1fr);
+    gap:5px;
+  }
+  .month-head{
+    font-family:Arial, sans-serif;
+    font-size:11px; color:var(--text-light);
+    text-align:center; text-transform:capitalize;
+    padding-bottom:6px;
+  }
+  .month-day{
+    background:var(--card-soft);
+    border-radius:8px;
+    min-height:56px;
+    padding:6px;
+    position:relative;
+  }
+  .month-day.empty{background:transparent;}
+  .month-day.today{border:1.5px solid var(--accent);}
+  .month-day .mdnum{font-family:Arial, sans-serif; font-size:12px; font-weight:700; color:var(--text);}
+  .month-dots{display:flex; gap:2px; flex-wrap:wrap; margin-top:4px;}
+  .month-dots span{width:5px; height:5px; border-radius:50%; background:var(--accent);}
+  .month-nav{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:12px; font-family:Arial, sans-serif;
+  }
+  .month-nav button{
+    background:none; border:none; font-size:16px; color:var(--accent); cursor:pointer; padding:4px 10px;
+  }
+  .month-nav .mtitle{font-size:14px; font-weight:600; color:var(--text); text-transform:capitalize;}
+  @media (max-width:520px){
+    .month-day{min-height:42px;}
+    .week-grid-time{grid-template-columns:36px repeat(7,minmax(34px,1fr));}
+    .wt-hour{font-size:8px; padding:0 3px;}
+    .wt-event{font-size:7px;}
+  }  .week-grid-time{
+    display:grid;
+    grid-template-columns:44px repeat(7,1fr);
+    overflow-x:auto;
+    border:1px solid var(--border);
+    border-radius:12px;
+    background:var(--card-soft);
+  }
+  .wt-head{
+    font-family:Arial, sans-serif;
+    font-size:11px;
+    text-align:center;
+    padding:8px 2px;
+    border-bottom:1px solid var(--border);
+    position:sticky; top:0; background:var(--card-soft); z-index:2;
+  }
+  .wt-head .dname{color:var(--text-light); text-transform:capitalize;}
+  .wt-head .dnum{font-weight:700; color:var(--text); font-size:14px;}
+  .wt-head.today .dnum{color:var(--accent);}
+  .wt-hour{
+    font-family:Arial, sans-serif;
+    font-size:10px;
+    color:var(--text-light);
+    text-align:right;
+    padding:0 6px;
+    border-top:1px solid var(--border);
+    height:44px;
+    box-sizing:border-box;
+  }
+  .wt-cell{
+    position:relative;
+    border-top:1px solid var(--border);
+    border-left:1px solid var(--border);
+    height:44px;
+  }
+  .wt-event{
+    position:absolute;
+    left:2px; right:2px;
+    background:var(--accent);
+    color:var(--bg);
+    border-radius:5px;
+    font-family:Arial, sans-serif;
+    font-size:9px;
+    padding:2px 4px;
+    overflow:hidden;
+    line-height:1.2;
+    z-index:1;
+  }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <header>
+    <div class="greeting">Hola valentina <span>✨</span></div>
+    <div class="subgreeting">¿Qué deseas hacer hoy?</div>
+  </header>
+  <button class="tutorial-link" onclick="openTutorial()">¿Cómo funciona MyCalendary?</button>
+
+  <nav class="actions">
+    <button class="action-btn" onclick="syncCalendar()">
+      <span class="icon">↻</span>
+      <span class="label">Sincronizar calendario</span>
+    </button>
+    <button class="action-btn" onclick="scrollToSection('reminders')">
+      <span class="icon">📌</span>
+      <span class="label">Ver recordatorios</span>
+    </button>
+    <button class="action-btn" onclick="scrollToSection('free-time')">
+      <span class="icon">✨</span>
+      <span class="label">Ver tiempo libre</span>
+    </button>
+  </nav>
+
+  <button class="sync-btn" onclick="syncCalendar()" id="syncBtn">↻ Sincronizar ahora</button>
+
+  <section>
+    <div class="calendar-tabs">
+      <button class="active" id="tabWeek" onclick="showCalTab('week')">Semana</button>
+      <button id="tabMonth" onclick="showCalTab('month')">Mes</button>
+    </div>
+    <div id="weekView" class="week-grid-time"></div>
+    <div id="monthView" style="display:none;">
+      <div class="month-nav">
+        <button onclick="changeMonth(-1)">‹</button>
+        <span class="mtitle" id="monthTitle"></span>
+        <button onclick="changeMonth(1)">›</button>
+      </div>
+      <div class="month-grid" id="monthGrid"></div>
+    </div>
+  </section>
+
+  <div class="two-col">
+    <section id="reminders">
+      <div class="section-title">Recordatorios <span class="count" id="reminderCount">0</span></div>
+      <div class="card-list" id="reminderList">
+        <div class="empty">Sin eventos próximos. Sincroniza tu calendario.</div>
+      </div>
+    </section>
+
+    <section id="free-time">
+      <div class="section-title">Tiempo libre <span class="count" id="freeCount">0</span></div>
+      <div class="card-list" id="freeList">
+        <div class="empty">Sincroniza para ver tus espacios disponibles.</div>
+      </div>
+    </section>
+  </div>
+
+  <section>
+    <div class="feedback-box">
+      <div class="feedback-title">Dile algo a Ignacio de lo que te gustaría cambiar</div>
+      <textarea id="feedbackText" placeholder="Escribe aquí tu idea, sugerencia o algo que no te gustó..."></textarea>
+      <div class="feedback-actions">
+        <button class="send-btn" onclick="sendFeedback()">Enviar</button>
+      </div>
+      <div class="feedback-ok" id="feedbackOk">✓ Gracias, tu mensaje fue enviado a Ignacio.</div>
+    </div>
+  </section>
+</div>
+
+<div class="tutorial-overlay" id="tutorialOverlay">
+  <div class="tutorial-modal">
+    <h2>Hola valentina ✨</h2>
+    <div class="step-desc" style="margin-top:6px;">Así funciona tu app, paso a paso:</div>
+
+    <div class="step">
+      <div class="num">1</div>
+      <div class="step-text">
+        <div class="step-title">Sincroniza tu calendario</div>
+        <div class="step-desc">Presiona "Sincronizar ahora" y MyCalendary trae automáticamente todo lo que tienes agendado en Google Calendar.</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="num">2</div>
+      <div class="step-text">
+        <div class="step-title">Recibe tus recordatorios</div>
+        <div class="step-desc">Cada evento se convierte en un recordatorio y te llega una notificación antes de que empiece, para que nunca se te olvide nada.</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="num">3</div>
+      <div class="step-text">
+        <div class="step-title">Descubre tu tiempo libre</div>
+        <div class="step-desc">En "Tiempo libre" verás los espacios del día en que no tienes nada agendado, ideales para organizar lo que quieras.</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="num">4</div>
+      <div class="step-text">
+        <div class="step-title">Cuéntale a Ignacio</div>
+        <div class="step-desc">Si algo no te acomoda o se te ocurre una mejora, escríbelo en el recuadro de abajo. Esta app se hizo pensando en ti.</div>
+      </div>
+    </div>
+
+    <button class="tutorial-close" onclick="closeTutorial()">Entendido</button>
+  </div>
+</div>
+
+<script>
+// URL de tu Google Apps Script (Code.gs) — reemplazar
+const BACKEND_URL = 'YOUR_GOOGLE_APPS_SCRIPT_URL';
+
+function openTutorial(){ document.getElementById('tutorialOverlay').classList.add('open'); }
+function closeTutorial(){
+  document.getElementById('tutorialOverlay').classList.remove('open');
+  localStorage.setItem('mycalendary_tutorial_seen', '1');
+}
+window.addEventListener('DOMContentLoaded', ()=>{
+  if(!localStorage.getItem('mycalendary_tutorial_seen')) openTutorial();
+  renderWeek([]);
+  renderMonth([]);
+});
+
+let allEvents = [];
+let currentMonthOffset = 0;
+
+function scrollToSection(id){
+  document.getElementById(id).scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+async function syncCalendar(){
+  const btn = document.getElementById('syncBtn');
+  btn.textContent = '⟳ Sincronizando...';
+  try{
+    const res = await fetch(BACKEND_URL, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        action:'getCalendarEvents',
+        timeMin:new Date(new Date().setDate(1)).toISOString(),
+        timeMax:new Date(new Date().setMonth(new Date().getMonth()+2)).toISOString()
+      })
+    });
+    const events = await res.json();
+    allEvents = events;
+    renderReminders(events);
+    renderFreeTime(events);
+    renderWeek(events);
+    renderMonth(events);
+  }catch(err){
+    console.error(err);
+  }finally{
+    btn.textContent = '↻ Sincronizar ahora';
+  }
+}
+
+function showCalTab(tab){
+  document.getElementById('tabWeek').classList.toggle('active', tab==='week');
+  document.getElementById('tabMonth').classList.toggle('active', tab==='month');
+  document.getElementById('weekView').style.display = tab==='week' ? 'grid' : 'none';
+  document.getElementById('monthView').style.display = tab==='month' ? 'block' : 'none';
+}
+function renderWeek(events){
+  const el = document.getElementById('weekView');
+  const today = new Date();
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - ((today.getDay()+6)%7));
+  const names = ['lun','mar','mié','jue','vie','sáb','dom'];
+  const startHour = 7, endHour = 22;
+
+  let html = `<div class="wt-head"></div>`;
+  const weekDays = [];
+  for(let i=0;i<7;i++){
+    const day = new Date(monday); day.setDate(monday.getDate()+i);
+    weekDays.push(day);
+    const isToday = day.toDateString() === today.toDateString();
+    html += `<div class="wt-head ${isToday?'today':''}">
+      <div class="dname">${names[i]}</div>
+      <div class="dnum">${day.getDate()}</div>
+    </div>`;
+  }
+
+  for(let h=startHour; h<endHour; h++){
+    html += `<div class="wt-hour">${h}:00</div>`;
+    for(let i=0;i<7;i++){
+      html += `<div class="wt-cell" id="wtcell-${i}-${h}"></div>`;
+    }
+  }
+
+  el.innerHTML = html;
+
+  events.forEach(e=>{
+    const start = new Date(e.start.dateTime||e.start.date);
+    const end = new Date(e.end.dateTime||e.end.date);
+    const dayIdx = weekDays.findIndex(d=>d.toDateString()===start.toDateString());
+    if(dayIdx===-1) return;
+    const hour = start.getHours();
+    if(hour<startHour || hour>=endHour) return;
+
+    const cell = document.getElementById(`wtcell-${dayIdx}-${hour}`);
+    if(!cell) return;
+    const minutes = start.getMinutes();
+    const durMin = Math.max((end-start)/60000, 20);
+    const evEl = document.createElement('div');
+    evEl.className = 'wt-event';
+    evEl.style.top = (minutes/60*44)+'px';
+    evEl.style.height = Math.min(durMin/60*44, 44*4)+'px';
+    evEl.textContent = e.summary || 'Evento';
+    cell.appendChild(evEl);
+  });
+}
+
+function changeMonth(delta){
+  currentMonthOffset += delta;
+  renderMonth(allEvents);
+}
+
+function renderMonth(events){
+  const base = new Date();
+  base.setMonth(base.getMonth()+currentMonthOffset);
+  const year = base.getFullYear(), month = base.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const startOffset = (firstDay.getDay()+6)%7;
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const today = new Date();
+
+  document.getElementById('monthTitle').textContent =
+    base.toLocaleDateString('es-CL',{month:'long', year:'numeric'});
+
+  const heads = ['lun','mar','mié','jue','vie','sáb','dom'];
+  let html = heads.map(h=>`<div class="month-head">${h}</div>`).join('');
+
+  for(let i=0;i<startOffset;i++) html += `<div class="month-day empty"></div>`;
+
+  for(let d=1; d<=daysInMonth; d++){
+    const date = new Date(year, month, d);
+    const isToday = date.toDateString() === today.toDateString();
+    const dayEvents = events.filter(e=>{
+      const ed = new Date(e.start.dateTime||e.start.date);
+      return ed.toDateString() === date.toDateString();
+    });
+    const dots = dayEvents.slice(0,4).map(()=>'<span></span>').join('');
+    html += `<div class="month-day ${isToday?'today':''}">
+      <div class="mdnum">${d}</div>
+      <div class="month-dots">${dots}</div>
+    </div>`;
+  }
+  document.getElementById('monthGrid').innerHTML = html;
+}
+
+function renderReminders(events){
+  const list = document.getElementById('reminderList');
+  document.getElementById('reminderCount').textContent = events.length;
+  if(!events.length){ list.innerHTML = '<div class="empty">Sin eventos próximos.</div>'; return; }
+  list.innerHTML = events.map(e=>{
+    const start = new Date(e.start.dateTime || e.start.date);
+    return `<div class="item">
+      <div class="item-title">${e.summary || 'Sin título'}</div>
+      <div class="item-meta">${start.toLocaleString('es-CL',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderFreeTime(events){
+  const sorted = events.map(e=>({
+    start:new Date(e.start.dateTime||e.start.date),
+    end:new Date(e.end.dateTime||e.end.date)
+  })).sort((a,b)=>a.start-b.start);
+
+  const gaps = [];
+  const workStart=8, workEnd=20;
+
+  if(sorted.length){
+    const dayStart = new Date(sorted[0].start); dayStart.setHours(workStart,0,0,0);
+    if(dayStart < sorted[0].start){
+      gaps.push({date:dayStart.toLocaleDateString('es-CL'), start:workStart+':00',
+        end:sorted[0].start.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'}),
+        duration:Math.round((sorted[0].start-dayStart)/60000)});
+    }
+  }
+  for(let i=0;i<sorted.length-1;i++){
+    const gap = sorted[i+1].start - sorted[i].end;
+    if(gap > 15*60*1000){
+      gaps.push({
+        date:sorted[i].end.toLocaleDateString('es-CL'),
+        start:sorted[i].end.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'}),
+        end:sorted[i+1].start.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'}),
+        duration:Math.round(gap/60000)
+      });
+    }
+  }
+
+  const list = document.getElementById('freeList');
+  document.getElementById('freeCount').textContent = gaps.length;
+  if(!gaps.length){ list.innerHTML = '<div class="empty">Sin espacios disponibles.</div>'; return; }
+  list.innerHTML = gaps.map(g=>`<div class="item free">
+    <div class="item-title">${g.date}</div>
+    <div class="item-meta">${g.start} → ${g.end} · ${g.duration} min</div>
+  </div>`).join('');
+}
+
+function sendFeedback(){
+  const text = document.getElementById('feedbackText').value.trim();
+  if(!text) return;
+  fetch(BACKEND_URL, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ action:'sendFeedback', message:text })
+  }).catch(err=>console.error(err));
+
+  document.getElementById('feedbackText').value = '';
+  const ok = document.getElementById('feedbackOk');
+  ok.style.display = 'block';
+  setTimeout(()=>{ ok.style.display='none'; }, 4000);
+}
+</script>
+</body>
+</html>
