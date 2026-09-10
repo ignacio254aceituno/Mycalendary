@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>MyCalendary</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiTXlDYWxlbmRhcnkiLCJzaG9ydF9uYW1lIjoiTXlDYWxlbmRhcnkiLCJkaXNwbGF5Ijoic3RhbmRhbG9uZSIsInN0YXJ0X3VybCI6Ii4iLCJiYWNrZ3JvdW5kX2NvbG9yIjoiI0ZGRjhGMCIsInRoZW1lX2NvbG9yIjoiIzZCNDQyMyJ9">
 <style>
   :root{
@@ -389,11 +390,118 @@
     line-height:1.2;
     z-index:1;
   }
+  .login-screen{
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:24px;
+    background-image:var(--peony-svg);
+    background-repeat:no-repeat;
+    background-position:center 30%;
+    background-size:280px;
+  }
+  .login-screen.hidden{display:none;}
+  .login-title{font-size:26px; font-weight:400; color:var(--text); margin-top:220px; margin-bottom:6px;}
+  .login-sub{font-family:Arial, sans-serif; font-size:13px; color:var(--text-light); margin-bottom:28px;}
+  .login-email-input{
+    width:260px;
+    max-width:80vw;
+    background:var(--card-soft);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:12px 14px;
+    font-family:Arial, sans-serif;
+    font-size:14px;
+    color:var(--text);
+    margin-bottom:16px;
+    text-align:center;
+  }
+  .login-email-input:focus{outline:2px solid var(--accent-soft); outline-offset:1px;}
+  .google-btn{
+    background:var(--accent);
+    color:var(--bg);
+    border:none;
+    padding:13px 26px;
+    border-radius:10px;
+    font-family:Arial, sans-serif;
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+    display:flex; align-items:center; gap:10px;
+  }
+  .app-content.hidden{display:none;}
+  .user-badge{
+    font-family:Arial, sans-serif;
+    font-size:12px;
+    color:var(--text-light);
+    margin-bottom:4px;
+  }
+  .add-event-btn{
+    background:var(--card-soft);
+    border:1px solid var(--border);
+    color:var(--accent);
+    padding:10px 18px;
+    border-radius:10px;
+    font-family:Arial, sans-serif;
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+    margin-bottom:20px;
+  }
+  .event-overlay{
+    position:fixed; inset:0;
+    background:rgba(74,53,39,0.45);
+    display:none;
+    align-items:center; justify-content:center;
+    padding:20px; z-index:100;
+  }
+  .event-overlay.open{display:flex;}
+  .event-modal{
+    background:var(--bg);
+    border-radius:18px;
+    max-width:400px; width:100%;
+    padding:26px;
+  }
+  .event-modal h2{font-size:18px; font-weight:400; color:var(--text); margin-bottom:16px;}
+  .event-modal label{font-family:Arial, sans-serif; font-size:12px; color:var(--text-light); display:block; margin:12px 0 5px;}
+  .event-modal input, .event-modal textarea{
+    width:100%;
+    background:var(--card-soft);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:10px 12px;
+    font-family:Arial, sans-serif;
+    font-size:13px;
+    color:var(--text);
+  }
+  .event-modal-actions{display:flex; gap:10px; margin-top:20px;}
+  .event-modal-actions button{
+    flex:1;
+    padding:11px;
+    border-radius:9px;
+    border:none;
+    font-family:Arial, sans-serif;
+    font-size:13px; font-weight:600;
+    cursor:pointer;
+  }
+  .btn-cancel{background:var(--card-soft); color:var(--text-light);}
+  .btn-save{background:var(--accent); color:var(--bg);}
 </style>
 </head>
 <body>
 
-<div class="shell">
+<div class="login-screen" id="loginScreen">
+  <div class="login-title">MyCalendary</div>
+  <div class="login-sub">Hola valentina ✨<br>Esta es tu app para organizar tu tiempo,<br>conectada a tu Google Calendar</div>
+  <input type="email" id="loginEmail" placeholder="tucorreo@gmail.com" class="login-email-input" autocomplete="email">
+  <button class="google-btn" onclick="startGoogleLogin()">🔑 Continuar con Google</button>
+</div>
+
+<div class="shell app-content hidden" id="appContent">
+  <div class="user-badge" id="userBadge"></div>
   <header>
     <div class="greeting">Hola valentina <span>✨</span></div>
     <div class="subgreeting">¿Qué deseas hacer hoy?</div>
@@ -416,6 +524,7 @@
   </nav>
 
   <button class="sync-btn" onclick="syncCalendar()" id="syncBtn">↻ Sincronizar ahora</button>
+  <button class="add-event-btn" onclick="openEventModal()">+ Nuevo evento</button>
 
   <section>
     <div class="calendar-tabs">
@@ -502,6 +611,26 @@
   </div>
 </div>
 
+<div class="event-overlay" id="eventOverlay">
+  <div class="event-modal">
+    <h2>Nuevo evento</h2>
+    <label>Título</label>
+    <input type="text" id="evTitle" placeholder="Ej: Reunión con equipo">
+    <label>Fecha</label>
+    <input type="date" id="evDate">
+    <label>Hora inicio</label>
+    <input type="time" id="evStart">
+    <label>Hora término</label>
+    <input type="time" id="evEnd">
+    <label>Descripción (opcional)</label>
+    <textarea id="evDesc" rows="2"></textarea>
+    <div class="event-modal-actions">
+      <button class="btn-cancel" onclick="closeEventModal()">Cancelar</button>
+      <button class="btn-save" onclick="saveNewEvent()">Guardar en Google Calendar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // URL de tu Google Apps Script (Code.gs) — reemplazar
 const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbzV-l077utzKbvlCVTQmoSQH3FipVdUcjcTDvG_eTZTFIGDvHaUyMG_Nf4BlGHPMKEa/exec';
@@ -517,27 +646,106 @@ window.addEventListener('DOMContentLoaded', ()=>{
   renderMonth([]);
 });
 
+// Reemplaza con tu Client ID de Google Cloud (OAuth 2.0 - Web application)
+const GOOGLE_CLIENT_ID = '646748744613-ad1duh3f6u9ru1nripmu3mku1t7a9agp.apps.googleusercontent.com';
+let accessToken = null;
+let tokenClient = null;
+
+function initGoogleAuth(){
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: GOOGLE_CLIENT_ID,
+    scope: 'https://www.googleapis.com/auth/calendar.events email profile',
+    callback: (resp)=>{
+      if(resp.error) return;
+      accessToken = resp.access_token;
+      localStorage.setItem('mycalendary_token', accessToken);
+      onLoginSuccess();
+    }
+  });
+}
+
+function startGoogleLogin(){
+  const email = document.getElementById('loginEmail').value.trim();
+  tokenClient.requestAccessToken(email ? { hint: email } : {});
+}
+
+async function onLoginSuccess(){
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('appContent').classList.remove('hidden');
+  try{
+    const profRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers:{Authorization:'Bearer '+accessToken}
+    });
+    const profile = await profRes.json();
+    document.getElementById('userBadge').textContent = profile.email || '';
+  }catch(e){}
+  syncCalendar();
+}
+
+window.addEventListener('load', initGoogleAuth);
+
 let allEvents = [];
 let currentMonthOffset = 0;
+
+function openEventModal(){
+  document.getElementById('evDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('eventOverlay').classList.add('open');
+}
+function closeEventModal(){
+  document.getElementById('eventOverlay').classList.remove('open');
+}
+
+async function saveNewEvent(){
+  const title = document.getElementById('evTitle').value.trim();
+  const date = document.getElementById('evDate').value;
+  const start = document.getElementById('evStart').value;
+  const end = document.getElementById('evEnd').value;
+  const desc = document.getElementById('evDesc').value.trim();
+  if(!title || !date || !start || !end) return;
+
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const body = {
+    summary: title,
+    description: desc,
+    start: { dateTime: `${date}T${start}:00`, timeZone: tz },
+    end: { dateTime: `${date}T${end}:00`, timeZone: tz }
+  };
+
+  try{
+    const res = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+      method:'POST',
+      headers:{
+        'Authorization':'Bearer '+accessToken,
+        'Content-Type':'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+    if(!res.ok) throw new Error('Error al crear evento');
+    closeEventModal();
+    document.getElementById('evTitle').value = '';
+    document.getElementById('evDesc').value = '';
+    syncCalendar();
+  }catch(err){
+    console.error(err);
+    alert('No se pudo guardar el evento. Intenta de nuevo.');
+  }
+}
 
 function scrollToSection(id){
   document.getElementById(id).scrollIntoView({behavior:'smooth', block:'start'});
 }
 
 async function syncCalendar(){
+  if(!accessToken) return;
   const btn = document.getElementById('syncBtn');
   btn.textContent = '⟳ Sincronizando...';
   try{
-    const res = await fetch(BACKEND_URL, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        action:'getCalendarEvents',
-        timeMin:new Date(new Date().setDate(1)).toISOString(),
-        timeMax:new Date(new Date().setMonth(new Date().getMonth()+2)).toISOString()
-      })
-    });
-    const events = await res.json();
+    const timeMin = new Date(new Date().setDate(1)).toISOString();
+    const timeMax = new Date(new Date().setMonth(new Date().getMonth()+2)).toISOString();
+    const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`;
+    const res = await fetch(url, { headers:{Authorization:'Bearer '+accessToken} });
+    const data = await res.json();
+    const events = (data.items||[]).filter(e=>e.start);
     allEvents = events;
     renderReminders(events);
     renderFreeTime(events);
